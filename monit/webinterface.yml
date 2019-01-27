@@ -1,0 +1,24 @@
+# execute the 
+$ ansible-playbook -i inventory/kvm/inventory playbooks/configuration/monit.yml --tags ui -K
+- name: Configure UI
+  hosts: debian
+  become: yes
+  become_method: sudo
+  gather_facts: true
+  tags: [ui]
+ 
+ tasks:
+     - lineinfile:
+          path: /etc/monit/monitrc
+          regexp: ‘httpd port 2812’
+          line: ‘set httpd port 2812 and’
+- lineinfile:
+    path: /etc/monit/monitrc
+    regexp: ‘# allow admin:monit’
+     line: ‘ allow admin:monit’
+- name: Restart monit service
+  systemd:
+    name: monit.service
+    state: restarted
+- wait_for:
+      port: 2812
