@@ -1,0 +1,43 @@
+#ansible-playbook -i inventory/kvm/inventory playbooks/configuration/monit.yml --tags ssh -vv -K
+
+- name: Configure monitoring for nginx
+  hosts: debian
+  become: yes
+  become_method: sudo
+  gather_facts: true
+  tags: [ssh]
+
+tasks:
+  - name: Add ssh monitoring
+    blockinfile:
+      path: /etc/monit/monitrc
+      marker_begin: “ssh BEGIN”
+      marker_end: “ssh END”
+      block: |
+        check process sshd with pidfile /var/run/sshd.pid
+            group system
+            group sshd
+            start program = “/etc/init.d/ssh start”
+            stop program = “/etc/init.d/ssh stop”
+            if failed host localhost port 22 with proto ssh then restart
+            if 5 restarts with 5 cycles then timeout
+            depend on sshd_bin
+            depend on sshd_rc
+            depend on sshd_rsa_key
+            depend on sshd_dsa_key
+         check file sshd_bin with path /usr/sbin/sshd
+           group sshd
+           include /etc/monit/templates/rootbin
+          check file sshd_rsa_key with path /etc/ssh/ssh_host_rsa_key
+            group sshd
+            include /etc/monit/templates/rootstrict
+            check file sshd_dsa_key with path /etc/ssh/ssh_host_ecdsa_key
+                group sshd
+                include /etc/monit/templates/rootstrict
+           check file sshd_rc with path /etc/ssh/sshd_config
+             group sshd
+             include /etc/monit/templates/rootrc
+- name: Restart monit service
+systemd:
+   name: monit.service
+   state: restarted
