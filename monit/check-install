@@ -1,0 +1,10 @@
+# if monin is litening on port 2812
+netstat -na | grep :2812
+# if the configuraiotn file syntax is intact
+sudo monit -t
+# service status
+$ sudo monit status
+print monit summary
+# via systemctl
+sudo systemctl status monit
+ 
