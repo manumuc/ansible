@@ -1,0 +1,93 @@
+# ansible-playbook -i inventory/kvm/inventory playbooks/configuration/monit.yml --tags nginx -vv -K
+
+- name: Configure ssh monitoring
+ 
+hosts: debian
+ 
+become: yes
+ 
+become_method: sudo
+ 
+gather_facts: true
+ 
+tags: [nginx]
+ 
+tasks:
+ 
+- name: Update the software package repository
+ 
+  apt:
+ 
+     update_cache: yes
+ 
+- name: Install nginx
+ 
+  package:
+ 
+    name: “{{ item }}”
+ 
+    state: latest
+ 
+with_items:
+ 
+    - nginx
+ 
+- name: Start nginx
+ 
+  service:
+ 
+      name: nginx
+ 
+      state: started
+ 
+- wait_for:
+ 
+     port: 80
+ 
+- name: Add nginx monitoring
+ 
+  blockinfile:
+ 
+      path: /etc/monit/monitrc
+ 
+      marker_begin: “nginx BEGIN”
+ 
+      marker_end: “nginx END”
+ 
+      block: |
+ 
+         check process nginx with pidfile /var/run/nginx.pid
+ 
+           group www
+ 
+           group nginx
+ 
+           start program = “/etc/init.d/nginx start”
+ 
+           stop program = “/etc/init.d/nginx stop”
+ 
+           if 5 restarts with 5 cycles then timeout
+ 
+           depend nginx_bin
+ 
+           depend nginx_rc
+ 
+      check file nginx_bin with path /usr/sbin/nginx
+ 
+         group nginx
+ 
+          include /etc/monit/templates/rootbin
+ 
+      check file nginx_rc with path /etc/init.d/nginx
+ 
+         group nginx
+ 
+          include /etc/monit/templates/rootbin
+ 
+- name: Restart monit service
+ 
+  systemd:
+ 
+   name: monit.service
+ 
+   state: restarted
