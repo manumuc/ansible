@@ -1,0 +1,22 @@
+# test connecivity
+$ ansible -i inventory/kvm/inventory debian -m ping
+debian | SUCCESS => {
+    “changed”: false,
+    “ping”: “pong”
+}
+# test user login
+$ ansible -i inventory/kvm/inventory debian -m ping
+debian | SUCCESS => {
+    “changed”: false,
+    “ping”: “pong”
+}
+---
+inventory:
+ansible_host=192.168.122.197 ansible_connection=ssh ansible_user=debian ansible_password=password
+---
+# default debian does not have sudo installed; log in to the VM and install the sudo packge.
+# the debian user needs sudo access:
+---
+apt-get install sudo
+addduser debian sudo
+# add the ip to the debian VM to the /etc/host
